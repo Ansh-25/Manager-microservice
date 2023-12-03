@@ -35,13 +35,40 @@ const upload = async (req, res) => {
     const filePath = "C:\\Users\\anshs\\OneDrive\\Desktop\\Cloud\\express-file-upload-master\\resources\\static\\assets\\uploads\\" + req.file.filename;
     const base64Data = fileToBase64(filePath);
 
+    const requestData ={
+      "key":req.file.filename
+    }
+  
+    const options = {
+      url: getUrl,
+      method: 'GET',
+      json: true,
+      body: requestData,
+  };
+
+    let a=0,b=0,c=0;
+  
+    request(options, (error, response, body) => {
+      if (error) {
+          console.error('Error:', error);
+      } else {
+          console.log('Status Code:', response.statusCode);
+          console.log('Response Body:', body);
+          for(let i=0;i<body.message.length;++i){
+            a = Math.max(a,body.message[i].vectorClock.A);
+            b = Math.max(b,body.message[i].vectorClock.B);
+            c = Math.max(c,body.message[i].vectorClock.C);
+          }
+      }
+    });
+
     const postData = {
       "key": req.file.filename,
       "data": base64Data,
       "context":{
-        "A":0,
-        "B":0,
-        "C":0
+        "A":a,
+        "B":b,
+        "C":c
       }
   };
 
@@ -58,7 +85,7 @@ const upload = async (req, res) => {
           console.log('Response Body:', body);
         }
       });
-      
+
       deleteFileAsync(filePath);
       
       if (req.file == undefined) {
@@ -126,7 +153,12 @@ const download = (req, res) => {
     } else {
         console.log('Status Code:', response.statusCode);
         console.log('Response Body:', body);
-        res.status(200).send(body.message[0].data);
+        if(body.message == "Key not found"){
+          res.status(200).send(body.message);
+        }else{
+          console.log(body.message[0].vectorClock.A)
+          res.status(200).send(body.message[0].data);
+        }
     }
   });
 };
